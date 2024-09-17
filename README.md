@@ -5,7 +5,8 @@ Simple Chat bot with memory and streamlit interface
 
 ## Database Setup
 1. Install postgres and create a database
-2. In the config.py file add DATABASE_URL 
+2. Rename the config-sample.py to config.py
+3. In the config.py file add DATABASE_URL 
 
 ## Project Setup 
 1. Create a Virtual Environment 
