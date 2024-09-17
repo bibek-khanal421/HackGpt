@@ -21,5 +21,18 @@ Simple Chat bot with memory and streamlit interface
     streamlit run app.py
    ```
 
+## Using Interface
+- Create an session by adding a session name(optional) and click "Create New Session" button.
+
+    ![streamlit Interface](images/usage.png)
+
+- You can change the model for each session and corresponding model temperature. 
+- The hack prompt text area allows you to provide extra information that you want your assistant to follow.
+- You can clear the current session history using the "Clear Session Memory" button.
+- You can delete the current session using the "Delete Session" button
+
+## WIP
+- The models, temperature and hackprompt for each session does not persist 
+- Upload file feature
 
 

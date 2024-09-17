@@ -176,7 +176,7 @@ def main():
     app = ChatApp()
     memory = LangChainMemory(connection_string=DATABASE_URL, session_id=st.session_state.current_session_name).get_memory()
     # Sidebar for session management
-    text = st.sidebar.text_input("Enter Session Name")
+    text = st.sidebar.text_input("Enter Session Name (OPTIONAL)")
     if st.sidebar.button("Create New Session"):
         app.create_session(text if text else "Session")
         st.rerun()
