@@ -15,53 +15,89 @@ st.set_page_config(layout="wide")
 if "current_session_name" not in st.session_state:
     st.session_state.current_session_name = None
 
-CHAT_PROMPT_TEMPLATE_FILE="prompt\chatprompt.tmpl"
+CHAT_PROMPT_TEMPLATE_FILE="/home/lis-bibek-khanal/hackgpt/prompt/chatprompt.tmpl"
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
+# class ChatApp:
+#     def __init__(self):
+#         self.db = SessionLocal()
+
+#     def create_session(self, session_name="Session"):
+#         """
+#         Function to create a new chat session.
+#         Args:
+#             None
+#         Returns:
+#             None
+#         """
+#         session_name = f"{session_name}_{uuid.uuid4().hex[:8]}"
+#         new_session = ChatSession(session_name=session_name)
+#         self.db.add(new_session)
+#         self.db.commit()
+
+#         st.session_state.current_session_name = session_name
+#         st.success(f"Session '{session_name}' created and active.")
+
+#     def switch_session(self, session_name):
+#         """
+#         Function to switch the active chat session.
+#         Args:
+#             session_name (str): The name of the session to switch to.
+#         Returns:
+#             None
+#         """
+#         st.session_state.current_session_name = session_name
+
+#     def delete_session(self, session_name):
+#         """
+#         Function to delete a chat session.
+#         Args:
+#             session_name (str): The name of the session to delete.
+#         Returns:
+#             None
+#         """
+#         session = self.db.query(ChatSession).filter(ChatSession.session_name == session_name).first()
+#         if session:
+#             self.db.delete(session)
+#             self.db.commit()
+#             st.success(f"Session '{session_name}' deleted.")
+#             st.session_state.current_session_name = None
+#         else:
+#             st.error(f"Session '{session_name}' does not exist.")
 class ChatApp:
     def __init__(self):
         self.db = SessionLocal()
 
-    def create_session(self, session_name="Session"):
-        """
-        Function to create a new chat session.
-        Args:
-            None
-        Returns:
-            None
-        """
+    def create_session(self, session_name="Session", model="gpt-4o", temperature=0.5, hack_prompt=""):
         session_name = f"{session_name}_{uuid.uuid4().hex[:8]}"
-        new_session = ChatSession(session_name=session_name)
+        new_session = ChatSession(session_name=session_name, model=model, temperature=temperature, hack_prompt=hack_prompt)
         self.db.add(new_session)
         self.db.commit()
 
         st.session_state.current_session_name = session_name
+        st.session_state.model = model
+        st.session_state.temperature = temperature
+        st.session_state.hack_prompt = hack_prompt
         st.success(f"Session '{session_name}' created and active.")
 
     def switch_session(self, session_name):
-        """
-        Function to switch the active chat session.
-        Args:
-            session_name (str): The name of the session to switch to.
-        Returns:
-            None
-        """
-        st.session_state.current_session_name = session_name
+        session = self.db.query(ChatSession).filter(ChatSession.session_name == session_name).first()
+        if session:
+            st.session_state.current_session_name = session_name
+            st.session_state.model = session.model
+            st.session_state.temperature = session.temperature
+            st.session_state.hack_prompt = session.hack_prompt
 
     def delete_session(self, session_name):
-        """
-        Function to delete a chat session.
-        Args:
-            session_name (str): The name of the session to delete.
-        Returns:
-            None
-        """
         session = self.db.query(ChatSession).filter(ChatSession.session_name == session_name).first()
         if session:
             self.db.delete(session)
             self.db.commit()
             st.success(f"Session '{session_name}' deleted.")
             st.session_state.current_session_name = None
+            st.session_state.model = None
+            st.session_state.temperature = None
+            st.session_state.hack_prompt = None
         else:
             st.error(f"Session '{session_name}' does not exist.")
 
@@ -159,6 +195,96 @@ def format_response(response):
         elif line.strip():  # Skip empty lines
             st.markdown(line)
 
+def summarize_conversation(memory):
+        """
+        Function to summarize the conversation.
+        Args:
+            memory (ConversationBufferWindowMemory): The memory object for the current session.
+        Returns:
+            str: The summary of the conversation.
+        """
+        history = memory.load_memory_variables({}).get("history", [])
+        conversation_text = " ".join([convo.content for convo in history if convo.type in ["human", "ai"]])
+        # Summarize the conversation with token size 5
+        summary = ChatOpenAI(temperature=0.5, model="gpt-4o").predict(text=f"Summarize this conversation so that i could use it as a session name in 3 words: {str(conversation_text)}")
+        return ''.join(letter for letter in summary if letter.isalnum())
+
+# def main():
+#     st.title("HackGpt")
+
+#     st.markdown(
+#     """
+#     <style>
+#         section[data-testid="stSidebar"] {
+#             width: 300px !important; # Set the width to your desired value
+#         }
+#     </style>
+#     """,
+#     unsafe_allow_html=True,
+#     )
+
+#     app = ChatApp()
+#     memory = LangChainMemory(connection_string=DATABASE_URL, session_id=st.session_state.current_session_name).get_memory()
+#     # Sidebar for session management
+#     text = st.sidebar.text_input("Enter Session Name (OPTIONAL)")
+#     if st.sidebar.button("Create New Session"):
+#         app.create_session(text if text else "Session")
+#         st.rerun()
+    
+#     session_names = [session.session_name for session in app.db.query(ChatSession).all()][::-1]
+#     if len(session_names) > 0:
+#         st.sidebar.title("Available Sessions")
+#     else:
+#         st.sidebar.write("No Sessions Available")
+
+#     for name in session_names:
+#         button = st.sidebar.button(name, key=name)
+#         if button:
+#             app.switch_session(name)
+#             st.rerun()
+    
+#     if st.session_state.current_session_name:
+#         with st.sidebar.expander("Configuration", expanded=True):
+#             if st.button("Clear Session Memory", key="clear"):
+#                 if st.session_state.current_session_name is None:
+#                     st.error("No active session. Please create a session first.")
+#                 else:
+#                     memory.clear_history()
+#             model = st.selectbox(
+#                 "Choose Your Model",
+#                 ("gpt-4o", "gpt-4o-mini", "gpt-4"),
+#             )
+#             temperature = st.slider("Select Your Temperature", 0.0,1.0,0.5)
+#             hack_prompt = st.text_area("Hack Prompt")
+#             if st.button("Delete Session", key="delete"):
+#                 app.delete_session(st.session_state.current_session_name)
+#                 st.rerun()
+            
+
+#         st.write(f"**Current Session**: {st.session_state.current_session_name}")
+#         history = memory.load_memory_variables({}).get("history", [])
+#         for convo in history:
+#             if convo.type=="human":
+#                 with st.chat_message("user"):
+#                     st.text(convo.content)
+#             elif convo.type=="ai":
+#                 with st.chat_message("ai"):
+#                     st.write(convo.content)
+
+#         # Input for user to type a message
+#         user_input = st.chat_input("Type your message here...") 
+        
+#         if user_input:
+#             with st.chat_message("user"):
+#                 st.text(str(user_input))
+#             with st.spinner("processing..."):
+#                 response = app.chat(user_input, memory, model, temperature, hack_prompt)
+#                 with st.chat_message("ai"):
+#                     st.write(response)
+#                     # write_markdown(response)
+#     else:
+#         st.write("No session active. Please create a session.")
+
 def main():
     st.title("HackGpt")
 
@@ -180,7 +306,7 @@ def main():
     if st.sidebar.button("Create New Session"):
         app.create_session(text if text else "Session")
         st.rerun()
-    
+
     session_names = [session.session_name for session in app.db.query(ChatSession).all()][::-1]
     if len(session_names) > 0:
         st.sidebar.title("Available Sessions")
@@ -192,7 +318,7 @@ def main():
         if button:
             app.switch_session(name)
             st.rerun()
-    
+
     if st.session_state.current_session_name:
         with st.sidebar.expander("Configuration", expanded=True):
             if st.button("Clear Session Memory", key="clear"):
@@ -200,16 +326,26 @@ def main():
                     st.error("No active session. Please create a session first.")
                 else:
                     memory.clear_history()
+
             model = st.selectbox(
                 "Choose Your Model",
                 ("gpt-4o", "gpt-4o-mini", "gpt-4"),
+                index=["gpt-4o", "gpt-4o-mini", "gpt-4"].index(st.session_state.model)
             )
-            temperature = st.slider("Select Your Temperature",0.0,1.0,0.5)
-            hack_prompt = st.text_area("Hack Prompt")
+            temperature = st.slider("Select Your Temperature",0.0,1.0,st.session_state.temperature)
+            hack_prompt = st.text_area("Hack Prompt", value=st.session_state.hack_prompt)
+
             if st.button("Delete Session", key="delete"):
                 app.delete_session(st.session_state.current_session_name)
                 st.rerun()
-            
+
+            # Update session settings
+            session = app.db.query(ChatSession).filter(ChatSession.session_name == st.session_state.current_session_name).first()
+            if session:
+                session.model = model
+                session.temperature = temperature
+                session.hack_prompt = hack_prompt
+                app.db.commit()
 
         st.write(f"**Current Session**: {st.session_state.current_session_name}")
         history = memory.load_memory_variables({}).get("history", [])
@@ -223,7 +359,7 @@ def main():
 
         # Input for user to type a message
         user_input = st.chat_input("Type your message here...") 
-        
+
         if user_input:
             with st.chat_message("user"):
                 st.text(str(user_input))
@@ -237,3 +373,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

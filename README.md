@@ -32,7 +32,6 @@ Simple Chat bot with memory and streamlit interface
 - You can delete the current session using the "Delete Session" button
 
 ## WIP
-- The models, temperature and hackprompt for each session does not persist 
 - Upload file feature
 
 
