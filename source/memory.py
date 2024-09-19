@@ -1,7 +1,8 @@
-from langchain.memory import PostgresChatMessageHistory, ConversationBufferWindowMemory
+from langchain.memory import PostgresChatMessageHistory
+
 
 class LangChainMemory:
-    def __init__(self, connection_string:str, session_id:str):
+    def __init__(self, connection_string: str, session_id: str):
         self.connection_string = connection_string
         self.session_id = session_id
 
@@ -14,11 +15,10 @@ class LangChainMemory:
             PostgresChatMessageHistory: A PostgresChatMessageHistory object.
         """
         history = PostgresChatMessageHistory(
-            connection_string=self.connection_string, 
-            session_id=self.session_id
-            )
+            connection_string=self.connection_string, session_id=self.session_id
+        )
         return history
-    
+
     def clear_history(self):
         """
         Clear the chat history for the current session.
@@ -29,25 +29,3 @@ class LangChainMemory:
         """
         history = self.get_history()
         history.clear()
-    
-    def get_memory(self):
-        """
-        Get the memory object for the current session.
-        Args:
-            None
-        Returns:
-            ConversationBufferWindowMemory: A ConversationBufferWindowMemory object
-        """
-        history = self.get_history()
-        memory =  ConversationBufferWindowMemory(
-            memory_key="history",
-            return_messages=True,
-            chat_memory=history,
-            input_key="input",
-            k=10,
-            ai_prefix="AI",
-            human_prefix="Human",
-        )
-        return memory
-    
-    

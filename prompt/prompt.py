@@ -13,6 +13,7 @@ def set_var(prompt: str, vars: dict):
         prompt = prompt.replace(f"{{{key}}}", value)
     return prompt
 
+
 def get_prompt(path, vars):
     """
     Reads a prompt from a file and replaces placeholders with values from a dictionary.
