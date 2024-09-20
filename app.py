@@ -161,6 +161,7 @@ def main():
         section[data-testid="stSidebar"] {
             width: 300px !important; # Set the width to your desired value
         }
+        <style>
     </style>
     """,
         unsafe_allow_html=True,
@@ -178,14 +179,14 @@ def main():
 
     session_names = [
         session.session_name for session in app.db.query(ChatSession).all()
-    ][::-1]
+    ]
     if len(session_names) > 0:
         st.sidebar.title("Available Sessions")
     else:
         st.sidebar.write("No Sessions Available")
 
     for name in session_names:
-        button = st.sidebar.button(name, key=name)
+        button = st.sidebar.button(name, key=name, use_container_width=True)
         if button:
             app.switch_session(name)
             st.rerun()
@@ -254,9 +255,6 @@ def main():
             )
             with st.chat_message("ai"):
                 st.write_stream(stream)
-            #    for response in stream:
-            #         st.write(response.get("response"))
-            # st.write(stream)
     else:
         st.write("No session active. Please create a session.")
 
