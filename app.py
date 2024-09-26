@@ -16,7 +16,7 @@ st.set_page_config(layout="wide")
 if "current_session_name" not in st.session_state:
     st.session_state.current_session_name = None
 
-CHAT_PROMPT_TEMPLATE_FILE = "D:\hackgpt\prompt\chatprompt.tmpl"
+CHAT_PROMPT_TEMPLATE_FILE = "/home/lis-bibek-khanal/hackgpt/prompt/chatprompt.tmpl"
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["AZURE_OPENAI_API_KEY"] = AZURE_OPENAI_API_KEY
 os.environ["AZURE_OPENAI_ENDPOINT"] = AZURE_OPENAI_ENDPOINT
@@ -181,14 +181,14 @@ def main():
 
     session_names = [
         session.session_name for session in app.db.query(ChatSession).all()
-    ][::-1]
+    ]
     if len(session_names) > 0:
         st.sidebar.title("Available Sessions")
     else:
         st.sidebar.write("No Sessions Available")
 
     for name in session_names:
-        button = st.sidebar.button(name, key=name, use_container_width=True)
+        button = st.sidebar.button(name.split("_")[0] if not "Session" in name else name, key=name, use_container_width=True)
         if button:
             app.switch_session(name)
             st.rerun()
