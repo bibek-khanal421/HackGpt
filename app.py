@@ -75,7 +75,7 @@ class ChatApp:
             st.error(f"Session '{session_name}' does not exist.")
 
     def chat(
-        self, input_text, chat_memory, model, temperature, hack_prompt, session_id
+        self, input_text, history, model, temperature, hack_prompt, session_id
     ):
         """
         Function to chat with the OpenAI model.
@@ -100,7 +100,6 @@ class ChatApp:
                 "history": "{history}",
             },
         )
-        history = LangChainMemory(DATABASE_URL, session_id).get_history()
         # creating runnable
         runnable_chain = RunnableWithMessageHistory(
             get_chain(temperature=temperature, model=model, prompt=prompt),
@@ -188,7 +187,7 @@ def main():
         st.sidebar.write("No Sessions Available")
 
     for name in session_names:
-        button = st.sidebar.button(name.split("_")[0] if not "Session" in name else name, key=name, use_container_width=True)
+        button = st.sidebar.button(name.split("_")[0] if not "Session" in name else name, key=name, use_container_width=True, type="primary")
         if button:
             app.switch_session(name)
             st.rerun()
@@ -249,7 +248,7 @@ def main():
                 st.text(str(user_input))
             stream = app.chat(
                 user_input,
-                chat_memory,
+                memory.get_history(),
                 model,
                 temperature,
                 hack_prompt,
