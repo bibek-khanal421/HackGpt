@@ -236,7 +236,7 @@ def main():
         for convo in chat_memory:
             if convo.type == "human":
                 with st.chat_message("user"):
-                    st.text(convo.content)
+                    st.write(convo.content)
             elif convo.type == "AIMessageChunk":
                 with st.chat_message("ai"):
                     st.write(convo.content)
@@ -246,7 +246,7 @@ def main():
 
         if user_input:
             with st.chat_message("user"):
-                st.text(str(user_input))
+                st.write(str(user_input))
             stream = app.chat(
                 user_input,
                 memory.get_history(),
