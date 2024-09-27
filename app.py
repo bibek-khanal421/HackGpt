@@ -16,7 +16,7 @@ st.set_page_config(layout="wide")
 if "current_session_name" not in st.session_state:
     st.session_state.current_session_name = None
 
-CHAT_PROMPT_TEMPLATE_FILE = "/home/lis-bibek-khanal/hackgpt/prompt/chatprompt.tmpl"
+CHAT_PROMPT_TEMPLATE_FILE = r"C:\Users\Anton\Desktop\HackGpt\prompt\chatprompt.tmpl"
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["AZURE_OPENAI_API_KEY"] = AZURE_OPENAI_API_KEY
 os.environ["AZURE_OPENAI_ENDPOINT"] = AZURE_OPENAI_ENDPOINT
@@ -169,7 +169,7 @@ def main():
     )
     app = ChatApp()
     memory = LangChainMemory(
-        connection_string=DATABASE_URL, session_id=st.session_state.current_session_name
+        connection_string=DATABASE_URL, session_id=st.session_state.current_session_name, db_type="sqlite"
     )
     chat_memory = memory.get_history().messages
     # Sidebar for session management

@@ -163,3 +163,4 @@ pyvenv.cfg
 config.py
 *.sh
 Scripts/
+*.db
