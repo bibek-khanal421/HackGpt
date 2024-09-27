@@ -1,12 +1,13 @@
 from langchain.memory import PostgresChatMessageHistory
 from langchain_community.chat_message_histories import SQLChatMessageHistory
+from config import DB_TYPE
 
 
 class LangChainMemory:
-    def __init__(self, connection_string: str, session_id: str, db_type: str="sqlite"):
+    def __init__(self, connection_string: str, session_id: str):
         self.connection_string = connection_string
         self.session_id = session_id
-        self.db_type = db_type
+        self.db_type = DB_TYPE
 
     def postges_history(self):
         """
