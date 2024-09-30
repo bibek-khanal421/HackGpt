@@ -160,7 +160,7 @@ def main():
         """
     <style>
         section[data-testid="stSidebar"] {
-            width: 300px !important; # Set the width to your desired value
+            width: 400px !important; # Set the width to your desired value
         }
         <style>
     </style>
@@ -210,7 +210,7 @@ def main():
                 "Select Your Temperature", 0.0, 1.0, st.session_state.temperature
             )
             hack_prompt = st.text_area(
-                "Hack Prompt", value=st.session_state.hack_prompt
+                "Hack Prompt", value=st.session_state.hack_prompt, height=400
             )
 
             if st.button("Delete Session", key="delete"):
