@@ -14,7 +14,7 @@ API_VERSION = ""
 # openai = OpenAI ChatGPT
 # azure = Azure OpenAI
 LLM_TYPE = "openai"  # or "azure"
-DB_TYPE = "sqlite"  # or "postgres"
+DB_TYPE = "postgres"  # or "postgres"
 
 if DB_TYPE == "postgres":
     DATABASE_URL = POSTGRES_URL
@@ -22,5 +22,6 @@ elif DB_TYPE == "sqlite":
     DATABASE_URL = SQLITE_URL
 
 import os 
-if not os.path.exists("hackgpt_convo.db"):
-    open("hackgpt_convo.db", "w").close()
+if DB_TYPE == "sqlite":
+    if not os.path.exists("hackgpt_convo.db"):
+        open("hackgpt_convo.db", "w").close()
