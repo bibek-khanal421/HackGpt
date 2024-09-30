@@ -13,8 +13,8 @@ API_VERSION = ""
 # ------------------------------------
 # openai = OpenAI ChatGPT
 # azure = Azure OpenAI
-LLM_TYPE = "openai"  # or "azure"
-DB_TYPE = "postgres"  # or "postgres"
+LLM_TYPE = "openai"  # "openai" or "azure"
+DB_TYPE = "postgres"  # "sqlite" or "postgres"
 
 if DB_TYPE == "postgres":
     DATABASE_URL = POSTGRES_URL
