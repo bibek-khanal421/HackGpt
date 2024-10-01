@@ -100,7 +100,6 @@ class ChatApp:
                 "history": "{history}",
             },
         )
-        st.write(prompt)
         # creating runnable
         runnable_chain = RunnableWithMessageHistory(
             get_chain(temperature=temperature, model=model, prompt=prompt),
