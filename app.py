@@ -16,7 +16,7 @@ st.set_page_config(layout="wide")
 if "current_session_name" not in st.session_state:
     st.session_state.current_session_name = None
 
-CHAT_PROMPT_TEMPLATE_FILE = r"prompt\chatprompt.tmpl"
+CHAT_PROMPT_TEMPLATE_FILE = r"/home/lis-bibek-khanal/hackgpt/prompt/chatprompt.tmpl"
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["AZURE_OPENAI_API_KEY"] = AZURE_OPENAI_API_KEY
 os.environ["AZURE_OPENAI_ENDPOINT"] = AZURE_OPENAI_ENDPOINT
@@ -100,6 +100,7 @@ class ChatApp:
                 "history": "{history}",
             },
         )
+        st.write(prompt)
         # creating runnable
         runnable_chain = RunnableWithMessageHistory(
             get_chain(temperature=temperature, model=model, prompt=prompt),
@@ -236,7 +237,7 @@ def main():
         for convo in chat_memory:
             if convo.type == "human":
                 with st.chat_message("user"):
-                    st.write(convo.content)
+                    st.text(convo.content)
             elif convo.type == "AIMessageChunk":
                 with st.chat_message("ai"):
                     st.write(convo.content)
@@ -246,7 +247,7 @@ def main():
 
         if user_input:
             with st.chat_message("user"):
-                st.write(str(user_input))
+                st.text(str(user_input))
             stream = app.chat(
                 user_input,
                 memory.get_history(),

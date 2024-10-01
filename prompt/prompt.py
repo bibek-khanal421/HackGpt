@@ -10,7 +10,7 @@ def set_var(prompt: str, vars: dict):
         str: The input string with placeholders replaced by corresponding values.
     """
     for key, value in vars.items():
-        prompt = prompt.replace(f"{{{key}}}", value)
+        prompt = prompt.replace(f"<<<{key}>>>", value)
     return prompt
 
 
