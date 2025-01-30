@@ -4,9 +4,16 @@ Simple Chat bot with memory and streamlit interface
 # Installation
 
 ## Database Setup
+Hackgpt supports sqlite and postgres database for storing conversations and history \
+A hackgpt_convo.db file will be generated automatically when you run the code so database setup is optional \
+In case of error or you want to use your own database change the config as instructed below \
+<b>Rename the config-sample.py to config.py</b>
+### sqlite
+1. create a .db file and add a connection string to SQLITE_URL variable in the config file 
+2. set the DB_TYPE variable to "sqlite"
+### postgres
 1. Install postgres and create a database
-2. Rename the config-sample.py to config.py
-3. In the config.py file add DATABASE_URL 
+2. In the config.py file add the connection string to POSTGRES_URL
 
 ## Project Setup 
 1. Create a Virtual Environment 

@@ -49,11 +49,11 @@ class LLMFactory():
             "openai": OpenAI()
         }
 
-    def get_llm(self, temperature, model, streaming):
+    def get_llm(self, temperature=0.5, model="gpt-4o", streaming=False):
         return self.llms[self.type].get_llm(temperature=temperature, model=model, streaming=streaming)
 
 
-def get_chain(temperature, model, prompt):
+def get_chain(temperature, model, prompt, input_variables = []):
     """
     Get the conversational chain for the current session.
     Args:
@@ -63,7 +63,7 @@ def get_chain(temperature, model, prompt):
     Returns:
         LLMChain: A LLMChain object.
     """
-    prompt = PromptTemplate(input_variables=["input", "history"], template=prompt)
+    prompt = PromptTemplate(input_variables=input_variables, template=prompt)
     llm = LLMFactory(LLM_TYPE).get_llm(temperature=temperature, model=model, streaming=True)
     chain = prompt | llm
     return chain
