@@ -8,7 +8,7 @@ from sqlalchemy import Column, Integer, String, LargeBinary, ForeignKey
 from sqlalchemy.orm import relationship
 from source.chat_session import Base
 import tiktoken
-
+import math
 class PDFDocument(Base):
     __tablename__ = "hackgpt_pdf_documents"
 
@@ -83,10 +83,18 @@ class PDFProcessor:
         dimension = embeddings.shape[1]
         
         # Create FAISS index with L2 normalization for better performance
-        quantizer = faiss.IndexFlatL2(dimension)
-        index = faiss.IndexIVFPQ(quantizer, dimension, 50, 8, 8) 
-        if not index.is_trained:
-            index.train(embeddings)
+        if len(chunks) < 50:  # For small documents
+            # Use a simple flat index for small documents
+            index = faiss.IndexFlatL2(dimension)
+        else:
+            # Use IVF index for larger documents
+            nlist = min(50, len(chunks))  # Number of clusters
+            quantizer = faiss.IndexFlatL2(dimension)
+            index = faiss.IndexIVFFlat(quantizer, dimension, nlist)
+            # Train the index if we have enough data
+            if not index.is_trained and len(embeddings) >= nlist:
+                index.train(embeddings.astype('float32'))
+        
         # Normalize embeddings for better similarity search
         faiss.normalize_L2(embeddings)
         index.add(embeddings.astype('float32'))
