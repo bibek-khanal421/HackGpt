@@ -1,5 +1,4 @@
-from langchain.memory import PostgresChatMessageHistory
-from langchain_community.chat_message_histories import SQLChatMessageHistory
+from langchain_community.chat_message_histories import PostgresChatMessageHistory, SQLChatMessageHistory
 from config import DB_TYPE
 
 

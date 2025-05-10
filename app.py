@@ -1,6 +1,8 @@
 import os
 import re
 import uuid
+import pickle
+import time
 
 import streamlit as st
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -10,13 +12,22 @@ from prompt.prompt import get_prompt
 from source.chain import get_chain
 from source.chat_session import ChatSession, SessionLocal
 from source.memory import LangChainMemory
+from source.pdf_processor import PDFProcessor, PDFDocument
 
 st.set_page_config(layout="wide")
 
 if "current_session_name" not in st.session_state:
     st.session_state.current_session_name = None
+if "pdf_processing" not in st.session_state:
+    st.session_state.pdf_processing = False
+if "pdf_processed" not in st.session_state:
+    st.session_state.pdf_processed = False
+if "current_file" not in st.session_state:
+    st.session_state.current_file = None
+if "session_files" not in st.session_state:
+    st.session_state.session_files = []
 
-CHAT_PROMPT_TEMPLATE_FILE = r"/home/lis-bibek-khanal/hackgpt/prompt/chatprompt.tmpl"
+CHAT_PROMPT_TEMPLATE_FILE = r"./prompt/chatprompt.tmpl"
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["AZURE_OPENAI_API_KEY"] = AZURE_OPENAI_API_KEY
 os.environ["AZURE_OPENAI_ENDPOINT"] = AZURE_OPENAI_ENDPOINT
@@ -25,6 +36,7 @@ os.environ["AZURE_OPENAI_ENDPOINT"] = AZURE_OPENAI_ENDPOINT
 class ChatApp:
     def __init__(self):
         self.db = SessionLocal()
+        self.pdf_processor = PDFProcessor()
 
     def create_session(
         self, session_name="Session", model="gpt-4o", temperature=0.5, hack_prompt=""
@@ -43,19 +55,39 @@ class ChatApp:
         st.session_state.model = model
         st.session_state.temperature = temperature
         st.session_state.hack_prompt = hack_prompt
+        st.session_state.current_file = None
+        st.session_state.session_files = []
         st.success(f"Session '{session_name}' created and active.")
 
-    def switch_session(self, session_name):
-        session = (
-            self.db.query(ChatSession)
-            .filter(ChatSession.session_name == session_name)
-            .first()
+    def get_session_files(self, session_name: str) -> list:
+        """Get list of PDF files for a session."""
+        pdf_docs = (
+            self.db.query(PDFDocument)
+            .filter(PDFDocument.session_id == session_name)
+            .all()
         )
-        if session:
-            st.session_state.current_session_name = session_name
-            st.session_state.model = session.model
-            st.session_state.temperature = session.temperature
-            st.session_state.hack_prompt = session.hack_prompt
+        return [doc.filename for doc in pdf_docs]
+
+    def switch_session(self, session_name):
+        with st.spinner("Loading session..."):
+            session = (
+                self.db.query(ChatSession)
+                .filter(ChatSession.session_name == session_name)
+                .first()
+            )
+            if session:
+                st.session_state.current_session_name = session_name
+                st.session_state.model = session.model
+                st.session_state.temperature = session.temperature
+                st.session_state.hack_prompt = session.hack_prompt
+                # Get session files
+                st.session_state.session_files = self.get_session_files(session_name)
+                if st.session_state.session_files:
+                    st.session_state.pdf_processed = True
+                    st.session_state.current_file = st.session_state.session_files[-1]
+                else:
+                    st.session_state.pdf_processed = False
+                    st.session_state.current_file = None
 
     def delete_session(self, session_name):
         session = (
@@ -71,8 +103,81 @@ class ChatApp:
             st.session_state.model = None
             st.session_state.temperature = None
             st.session_state.hack_prompt = None
+            st.session_state.pdf_processed = False
+            st.session_state.current_file = None
+            st.session_state.session_files = []
         else:
             st.error(f"Session '{session_name}' does not exist.")
+
+    def process_pdf(self, pdf_file, session_name):
+        """Process uploaded PDF file and store embeddings."""
+        try:
+            st.session_state.pdf_processing = True
+            
+            # Create a progress bar
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            # Update status
+            status_text.text(f"Processing {pdf_file.name}...")
+            progress_bar.progress(10)
+            
+            # Process PDF and create embeddings
+            index, chunks = self.pdf_processor.process_pdf(pdf_file)
+            progress_bar.progress(50)
+            status_text.text("Creating embeddings...")
+            
+            # Store in database
+            pdf_doc = PDFDocument(
+                session_id=session_name,
+                filename=pdf_file.name,
+                embeddings=pickle.dumps(index),
+                chunks=pickle.dumps(chunks)
+            )
+            self.db.add(pdf_doc)
+            self.db.commit()
+            progress_bar.progress(90)
+            status_text.text("Finalizing...")
+            
+            st.session_state.pdf_processed = True
+            st.session_state.current_file = pdf_file.name
+            st.session_state.session_files.append(pdf_file.name)
+            
+            # Complete the progress
+            progress_bar.progress(100)
+            status_text.text("Done!")
+            time.sleep(0.5)  # Show 100% for a moment
+            progress_bar.empty()
+            status_text.empty()
+            
+            st.success(f"Successfully processed {pdf_file.name}")
+        except Exception as e:
+            st.error(f"Error processing PDF: {str(e)}")
+            st.session_state.pdf_processed = False
+            st.session_state.current_file = None
+        finally:
+            st.session_state.pdf_processing = False
+            st.rerun()
+
+    def get_pdf_context(self, query: str, session_name: str) -> str:
+        """Get relevant context from PDF documents for the query."""
+        pdf_docs = (
+            self.db.query(PDFDocument)
+            .filter(PDFDocument.session_id == session_name)
+            .all()
+        )
+        
+        if not pdf_docs:
+            return ""
+        
+        context = []
+        for doc in pdf_docs:
+            index = pickle.loads(doc.embeddings)
+            chunks = pickle.loads(doc.chunks)
+            relevant_chunks = self.pdf_processor.search_similar_chunks(query, index, chunks)
+            context.extend(relevant_chunks)
+        
+        return "\n".join(context)
 
     def chat(
         self, input_text, history, model, temperature, hack_prompt, session_id
@@ -92,12 +197,16 @@ class ChatApp:
             st.error("No active session. Please create a session first.")
             return ""
 
+        # Get relevant context from PDF documents
+        pdf_context = self.get_pdf_context(input_text, session_id)
+        print(pdf_context)
         prompt = get_prompt(
             path=CHAT_PROMPT_TEMPLATE_FILE,
             vars={
                 "hackprompt": hack_prompt if hack_prompt else "No additional prompt",
                 "input": "{input}",
                 "history": "{history}",
+                "pdf_context": pdf_context if pdf_context else "No relevant context from PDF documents",
             },
         )
         # creating runnable
@@ -110,6 +219,29 @@ class ChatApp:
         config = {"configurable": {"session_id": session_id}}
         response = runnable_chain.stream({"input": input_text}, config)
         return response
+
+    def delete_pdf_document(self, session_name: str, filename: str):
+        """Delete a PDF document from the session."""
+        pdf_doc = (
+            self.db.query(PDFDocument)
+            .filter(
+                PDFDocument.session_id == session_name,
+                PDFDocument.filename == filename
+            )
+            .first()
+        )
+        if pdf_doc:
+            self.db.delete(pdf_doc)
+            self.db.commit()
+            # Update session state
+            st.session_state.session_files.remove(filename)
+            if not st.session_state.session_files:
+                st.session_state.pdf_processed = False
+                st.session_state.current_file = None
+            else:
+                st.session_state.current_file = st.session_state.session_files[-1]
+            return True
+        return False
 
 
 def format_response(response):
@@ -214,6 +346,30 @@ def main():
                 "Hack Prompt", value=st.session_state.hack_prompt, height=400
             )
 
+            # PDF Upload Section
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("PDF Upload (Optional)")
+            
+            # Show uploaded files with delete buttons
+            if st.session_state.session_files:
+                st.sidebar.write("Uploaded PDFs:")
+                for file in st.session_state.session_files:
+                    col1, col2 = st.sidebar.columns([3, 1])
+                    with col1:
+                        st.write(f"- {file}")
+                    with col2:
+                        if st.button("🗑️", key=f"delete_{file}"):
+                            if app.delete_pdf_document(st.session_state.current_session_name, file):
+                                st.success(f"Deleted {file}")
+                                st.rerun()
+                            else:
+                                st.error(f"Failed to delete {file}")
+            
+            uploaded_file = st.sidebar.file_uploader("Upload PDF", type=["pdf"])
+            if uploaded_file is not None and not st.session_state.pdf_processing:
+                if uploaded_file.name != st.session_state.current_file:
+                    app.process_pdf(uploaded_file, st.session_state.current_session_name)
+
             if st.button("Delete Session", key="delete"):
                 app.delete_session(st.session_state.current_session_name)
                 st.rerun()
@@ -233,6 +389,8 @@ def main():
                 app.db.commit()
 
         st.write(f"**Current Session**: {st.session_state.current_session_name}")
+        
+        # Show chat history
         for convo in chat_memory:
             if convo.type == "human":
                 with st.chat_message("user"):
@@ -242,7 +400,11 @@ def main():
                     st.write(convo.content)
 
         # Input for user to type a message
-        user_input = st.chat_input("Type your message here...")
+        if st.session_state.pdf_processing:
+            st.info("Please wait while the PDF is being processed...")
+            user_input = st.chat_input("Processing PDF...", disabled=True)
+        else:
+            user_input = st.chat_input("Type your message here...")
 
         if user_input:
             with st.chat_message("user"):

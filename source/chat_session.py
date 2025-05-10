@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Float, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 
 from config import DATABASE_URL
 
@@ -17,6 +17,11 @@ class ChatSession(Base):
     model = Column(String, default="gpt-4o")
     temperature = Column(Float, default=0.5)
     hack_prompt = Column(String, default="")
+    pdf_documents = relationship("PDFDocument", back_populates="session", cascade="all, delete-orphan")
 
 
+# Import PDFDocument here to ensure it's included in Base.metadata
+from source.pdf_processor import PDFDocument
+
+# Create all tables
 Base.metadata.create_all(bind=engine)

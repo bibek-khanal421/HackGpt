@@ -6,3 +6,7 @@ langchain-openai
 psycopg2-binary
 psycopg-binary
 psycopg
+pypdf
+sentence-transformers
+faiss-cpu
+tiktoken
